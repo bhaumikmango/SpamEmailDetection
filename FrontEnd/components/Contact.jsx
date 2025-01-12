@@ -1,16 +1,39 @@
 import { useContext } from 'react'
 import Navbar from './Navbar'
 import Context from '../Context/ContextInit'
+import { Link } from 'react-router';
 
 const Contact = () => {
   const context = useContext(Context);
-  const {ref} = context;
+  const { ref } = context;
   return (
     <>
-    <Navbar/>
-    <div className='px-10 py-20 text-justify bg-white' ref={ref}>
-    Lorem ipsum dolor, sit amet consectetur adipisicing elit. Qui harum natus libero similique saepe sunt fuga enim temporibus sapiente eaque? Quaerat, molestias obcaecati sit error, non illo animi maxime natus explicabo alias nihil fugit perferendis sapiente nisi molestiae? Sed dolores labore laudantium magni. Magni sapiente, animi, perferendis illo sit laborum, illum dignissimos aliquam tenetur dolores veritatis! Rem recusandae exercitationem officiis, voluptatibus distinctio deserunt. Ea repudiandae, consequuntur voluptates facilis, magnam voluptatibus explicabo error velit aliquid itaque animi in voluptas. Aspernatur recusandae saepe officiis illo provident, odio tempora, quos minus, voluptatibus architecto modi. Consequuntur voluptatem voluptate nostrum, voluptates accusantium nobis nam ratione!
-    </div>
+      <Navbar />
+      <div className='px-10 py-20 text-center bg-white w-fit mx-auto' ref={ref}>
+        <p>
+          If you have any questions or feedback regarding the Spam Email Generator project, feel free to reach out!
+        </p>
+        <p>
+          Connect with us on LinkedIn:
+        </p>
+        <div className="LinkedIns flex space-x-10 my-4 w-full justify-center">
+          <div className="first">
+            <Link to={"https://www.linkedin.com/in/theprofessional-bhaumik-yadav/"} target='blank'>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="logo" className='w-40 hover:w-44 transition-all' />
+            </Link>
+            <p className='text-2xl font-semibold'>Bhaumik Yadav</p>
+            <p className='text-sm'>(FrontEnd Developer)</p>
+            <p></p>
+          </div>
+          <div className="second">
+            <Link to={"https://www.linkedin.com/in/gaurav-joshi-b3b1322a8/"} target='blank'>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="logo" className='w-40 hover:w-44 transition-all' />
+            </Link>
+            <p className='text-2xl font-semibold'>Gaurav Joshi</p>
+            <p className='text-sm'>(FrontEnd Developer)</p>
+          </div>
+        </div>
+      </div>
     </>
   )
 }

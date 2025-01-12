@@ -4,12 +4,18 @@ import Context from '../Context/ContextInit'
 
 const About = () => {
   const context = useContext(Context);
-  const {ref} = context;
+  const { ref } = context;
   return (
     <>
       <Navbar />
       <div className='px-10 py-20 text-justify bg-white' ref={ref}>
-        Lorem ipsum dolor, sit amet consectetur adipisicing elit. Sapiente eos totam officia libero labore voluptatem, sunt commodi vitae exercitationem quasi fuga laudantium obcaecati alias accusantium quod magnam beatae, perferendis assumenda molestiae debitis mollitia enim? Nesciunt totam perspiciatis dolorem veritatis quasi odit exercitationem necessitatibus obcaecati et. Id obcaecati a natus unde est laborum, aut ab voluptatem, quasi mollitia tempore ea maiores, vero exercitationem? Praesentium autem facilis ratione id sed temporibus reprehenderit aspernatur enim ad, necessitatibus quidem quas ex. Ratione perspiciatis autem nam eveniet at saepe laborum omnis veniam quisquam? Animi nihil, corporis accusamus cupiditate iste velit ex incidunt nobis quis adipisci, deserunt, eos maiores. Provident, tempore alias! Alias non distinctio dolorum iste obcaecati libero, odio quis voluptatum reiciendis ullam quas asperiores tempora atque fugiat doloremque nihil. Accusantium voluptatem enim aliquam delectus beatae nesciunt exercitationem. Ex necessitatibus doloribus non atque amet impedit omnis! Sequi fugit ducimus molestiae, consequuntur, dolorem ex recusandae doloremque porro quos asperiores provident deleniti enim est cumque vitae qui natus esse vero! A nam molestiae laudantium perspiciatis accusantium iure neque assumenda dolores amet accusamus ipsam unde quasi et cupiditate quia sapiente minima eveniet at, porro suscipit voluptas doloribus sint? Delectus labore culpa autem accusamus suscipit eveniet quia libero dolor.
+        Our Spam Email Detection System uses advanced machine learning techniques to automatically classify emails as spam or not spam based on their content. The system leverages the power of the Naive Bayes algorithm, a proven method for text classification tasks, to accurately detect unwanted or unsolicited emails.
+        <br /><br />
+        Built on a robust pipeline, the project starts with text preprocessing, where email content is transformed into numerical features using CountVectorizer. The processed data is then used to train the model, which is evaluated on critical metrics like precision, recall, and F1-score.
+        <br /><br />
+        Once the model is trained, it is deployed on Vercel as a serverless function, allowing real-time predictions for incoming emails through a simple API. Users can seamlessly interact with the system through a user-friendly frontend, which allows them to submit email text for classification.
+        <br /><br />
+        This project provides an efficient, scalable solution for email classification, and can be easily extended to incorporate advanced machine learning models or additional features for improved accuracy. Whether you're looking to filter spam or improve email management, our detection system offers a reliable and quick way to identify unwanted emails.
       </div>
     </>
   )

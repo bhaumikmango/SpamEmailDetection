@@ -1,17 +1,33 @@
 import pickle
+from flask import Flask,jsonify,request
+from flask_cors import CORS
 
-# Load the model
-with open('file.pkl', 'rb') as f:
-    predictor = pickle.load(f)
+app = Flask(__name__)
+CORS(app)
+@app.route("/", methods=['POST'])
+def index():
 
-# Input string
-input_text = "hello there this is an input"
+    if(request.method=='POST'):
+        data = request.get_json()
+        with open('file.pkl', 'rb') as f:
+            predictor = pickle.load(f)
 
-# Wrap the input string in a list
-res = predictor.predict([input_text])  # Predictor expects an iterable
+        input_text = data['email']
+        res = predictor.predict([input_text])
+        data = {
+            "isSpam": "null",
+            }
+        if res[0] == 1:
+            data = {
+            "isSpam": "true",
+            }
+            # print('Spam')
+        else:
+            data = {
+            "isSpam": "false",
+            }
+            # print('Not spam')
+        return jsonify(data)
 
-# Check the result
-if res[0] == 1:  # Use res[0] because predict() returns an array
-    print('Spam')
-else:
-    print('Not spam')
+if (__name__=="__main__"):
+    app.run(debug=True)

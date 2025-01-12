@@ -15,7 +15,12 @@ const ContextState = (props) => {
             ref.current.style.transition = "none";
             if (window.innerWidth < 360) {
                 ref.current.style.transform = "translateY(-8rem)"
-                ref.current.style.boxShadow = "inset 0 4px 6px rgba(0, 0, 0, 0.2)"
+                if (localStorage.getItem("mode")==="light") {
+                    ref.current.style.boxShadow = "inset 0 4px 6px rgba(0, 0, 0, 0.2)"
+                }
+                else{
+                    ref.current.style.boxShadow = "inset 0 4px 6px rgba(255, 255, 255, 0.2)"
+                }
             }
             else {
                 ref.current.style.transform = "translateY(0rem)"
@@ -36,7 +41,12 @@ const ContextState = (props) => {
             else {
                 ref.current.style.transition = "transform 0.2s";
                 ref.current.style.transform = "translateY(-8rem)"
-                ref.current.style.boxShadow = "inset 0 4px 6px rgba(0, 0, 0, 0.2)"
+                if (localStorage.getItem("mode")==="light") {
+                    ref.current.style.boxShadow = "inset 0 4px 6px rgba(0, 0, 0, 0.2)"
+                }
+                else{
+                    ref.current.style.boxShadow = "inset 0 4px 6px rgba(255, 255, 255, 0.2)"
+                }
             }
         }
     }, [NavFlag])
