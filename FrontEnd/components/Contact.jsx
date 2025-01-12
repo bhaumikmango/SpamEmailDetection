@@ -22,7 +22,7 @@ const Contact = () => {
               <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="logo" className='w-40 hover:w-44 transition-all' />
             </Link>
             <p className='text-2xl font-semibold'>Bhaumik Yadav</p>
-            <p className='text-sm'>(FrontEnd Developer)</p>
+            <p className='text-sm'>(ML Engineer)</p>
             <p></p>
           </div>
           <div className="second">
