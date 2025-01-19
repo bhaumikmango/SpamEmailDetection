@@ -63,4 +63,4 @@ This project demonstrates an effective approach to detecting spam emails using a
 
 ## Star This Project ⭐
 
-If you found this project insightful, consider giving it a star on [GitHub](#)!
+If you found this project insightful, consider giving it a star!
