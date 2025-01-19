@@ -15,7 +15,8 @@ const Form = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const resp = await (await fetch(API_URL, {
+        console.log(API_URL)
+        const resp = await (await fetch(`${API_URL}`, {
             'method': 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -31,7 +32,6 @@ const Form = () => {
             <Toast display={Display} isSpam={isSpam} setDisplay={setDisplay} />
             <div className=" bg-white py-10" ref={ref}>
                 <h1 className="text-4xl font-semibold text-center max-[590px]:text-3xl max-[480px]:px-5"> Welcome to Spam Email Detector</h1>
-                {API_URL}
                 <div className="form flex flex-col w-[100vw] lg:px-40 md:px-28 sm:px-16 max-sm:px-6">
                     <label htmlFor="input-email" className="my-2">Email</label>
                     <textarea id="input-email" className="h-96 rounded-md focus:outline-none px-4 focus:ring-4 focus:ring-amber-200 border border-amber-600 resize-none py-4" placeholder="Only the Body" name="email" ref={textareaRef} value={Email.email} onChange={onChange} autoComplete="off"></textarea>
