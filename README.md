@@ -54,7 +54,13 @@ This project demonstrates an effective approach to detecting spam emails using a
 
 ---
 
+## Links
+
+- https://spam-email-detection-bhaumiks-projects-006c20ba.vercel.app/
+- https://spam-email-detection-git-main-bhaumiks-projects-006c20ba.vercel.app/
+
+---
+
 ## Star This Project ⭐
 
 If you found this project insightful, consider giving it a star on [GitHub](#)!
-
