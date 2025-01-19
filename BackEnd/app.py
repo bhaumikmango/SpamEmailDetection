@@ -11,7 +11,6 @@ def index():
         data = request.get_json()
         with open('file.pkl', 'rb') as f:
             predictor = pickle.load(f)
-
         input_text = data['email']
         res = predictor.predict([input_text])
         data = {
