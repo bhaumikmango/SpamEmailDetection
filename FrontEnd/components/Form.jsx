@@ -15,7 +15,6 @@ const Form = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        console.log(API_URL)
         const resp = await (await fetch(`${API_URL}`, {
             'method': 'POST',
             headers: {
