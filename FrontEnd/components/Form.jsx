@@ -1,8 +1,7 @@
 import { useContext, useState } from "react"
 import Context from "../Context/ContextInit"
 import Toast from "./Toast";
-
-
+const API_URL = import.meta.env.VITE_API_URL;
 const Form = () => {
     const context = useContext(Context);
     const { ref, textareaRef } = context;
@@ -16,7 +15,7 @@ const Form = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const resp = await (await fetch('https://spamemaildetection-ttjf.onrender.com', {
+        const resp = await (await fetch(API_URL, {
             'method': 'POST',
             headers: {
                 'Content-Type': 'application/json'
