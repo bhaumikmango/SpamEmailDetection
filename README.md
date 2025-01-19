@@ -13,7 +13,7 @@ The primary objective of this project is to identify spam emails from non-spam e
 ## Tech Stack Used
 
 - **Backend**: Flask (Python framework for web development)  
-- **Frontend**: React.js (JavaScript library for building UIs)
+- **Frontend**: React.js (JavaScript library for building UIs) and Tailwind CSS (A utility-first CSS framework)
 
 ---
 
