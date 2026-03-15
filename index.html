@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpamSentinel — Email Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Tokens ───────────────────────────────────────────────────── */
+    :root {
+      --bg:           #0a0a0b;
+      --surface:      #111114;
+      --surface2:     #18181d;
+      --border:       #252530;
+      --border2:      #32323f;
+      --text:         #e8e8f0;
+      --muted:        #6b6b80;
+      --accent:       #c8f045;
+      --danger:       #ff4d6d;
+      --safe:         #00d4aa;
+      --font-display: 'Syne', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+      --r:            6px;
+      --r-lg:         12px;
+    }
+
+    /* ── Reset ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    /* ── Page shell ───────────────────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 clamp(1.5rem, 5vw, 4rem);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 11, 0.9);
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), #90c900);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .header-pill {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+      padding: 3px 10px;
+      border-radius: 100px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── Main ─────────────────────────────────────────────────────── */
+    main {
+      padding: clamp(2.5rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    /* ── One-shot entry animations ────────────────────────────────── */
+    /*
+     * Applied only to wrapper divs, NEVER directly on the .card element.
+     * The animationend listener below strips these classes once they fire
+     * so no subsequent reflow can ever restart them.
+     */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-1 { animation: slideUp 0.45s 0.05s ease both; }
+    .anim-2 { animation: slideUp 0.45s 0.13s ease both; }
+    .anim-3 { animation: slideUp 0.45s 0.21s ease both; }
+    .anim-4 { animation: slideUp 0.45s 0.29s ease both; }
+    .anim-5 { animation: slideUp 0.45s 0.37s ease both; }
+
+    /* ── Hero ─────────────────────────────────────────────────────── */
+    .hero { text-align: center; max-width: 540px; }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.9rem;
+      font-weight: 500;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--accent), #80ff9e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ── Stats row ────────────────────────────────────────────────── */
+    .stats-row {
+      width: 100%;
+      max-width: 680px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border2); }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), transparent); }
+    .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--danger), transparent); }
+    .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--safe),   transparent); }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-card:nth-child(1) .stat-num { color: var(--accent); }
+    .stat-card:nth-child(2) .stat-num { color: var(--danger); }
+    .stat-card:nth-child(3) .stat-num { color: var(--safe);   }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── Config bar ───────────────────────────────────────────────── */
+    .config-bar {
+      width: 100%;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .config-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .config-input {
+      flex: 1;
+      min-width: 180px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 7px 12px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .config-input:focus { border-color: var(--border2); }
+    .config-input::placeholder { color: var(--muted); }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border2);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status-dot.ok  { background: var(--safe);   box-shadow: 0 0 5px var(--safe); }
+    .status-dot.err { background: var(--danger); }
+
+    /* ── Card ─────────────────────────────────────────────────────── */
+    /*
+     * The .card itself carries ONLY the pulse-ring animation.
+     * It has no opacity/transform animations — those live on the
+     * .anim-N wrapper — so reflows here can never make it invisible.
+     */
+    .card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+    }
+
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0   rgba(200, 240, 69, 0.35); }
+      60%  { box-shadow: 0 0 0 10px rgba(200, 240, 69, 0);   }
+      100% { box-shadow: 0 0 0 0   rgba(200, 240, 69, 0);    }
+    }
+
+    .card.scanning { animation: pulse-ring 0.7s ease-out forwards; }
+
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: var(--r-lg) var(--r-lg) 0 0;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .card-title {
+      margin-left: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .card-body { padding: 24px 20px; }
+
+    /* ── Sample chips ─────────────────────────────────────────────── */
+    .samples {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .sample-label { font-size: 11px; color: var(--muted); }
+
+    .chip {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 12px;
+      cursor: pointer;
+      background: transparent;
+      font-family: var(--font-mono);
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(200, 240, 69, 0.05);
+    }
+
+    /* ── Editor ───────────────────────────────────────────────────── */
+    .editor {
+      position: relative;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface2);
+      display: flex;
+      overflow: hidden;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .editor:focus-within {
+      border-color: var(--border2);
+      box-shadow: 0 0 0 3px rgba(200, 240, 69, 0.06);
+    }
+
+    .line-nums {
+      width: 38px;
+      padding: 14px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .line-nums span {
+      font-size: 11px;
+      color: var(--border2);
+      line-height: 1.6;
+      height: 20.8px;
+      display: flex;
+      align-items: center;
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 14px;
+      resize: vertical;
+      min-height: 180px;
+      max-height: 400px;
+      caret-color: var(--accent);
+    }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── Toolbar ──────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .char-count {
+      font-size: 11px;
+      color: var(--muted);
+      transition: color 0.15s;
+    }
+    .char-count.warn { color: var(--danger); }
+
+    .btn-group { display: flex; gap: 8px; }
+
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 18px;
+      border-radius: var(--r);
+      border: 1px solid transparent;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: all 0.12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--border2);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #9edd00);
+      color: #0a0a0b;
+      font-weight: 700;
+      border: none;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-primary:active:not(:disabled) { filter: brightness(0.96); transform: none; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Loader ───────────────────────────────────────────────────── */
+    .loader {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 14px 0 0;
+    }
+    .loader.on { display: flex; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.55s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Error bar ────────────────────────────────────────────────── */
+    .error-bar {
+      display: none;
+      background: rgba(255, 77, 109, 0.07);
+      border: 1px solid rgba(255, 77, 109, 0.22);
+      border-radius: var(--r);
+      padding: 11px 14px;
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 14px;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .error-bar.on { display: flex; }
+
+    /* ── Result panel ─────────────────────────────────────────────── */
+    /*
+     * Base state is display:none — completely out of flow, zero height,
+     * zero impact on card layout. The .show class switches to display:block
+     * and triggers the fadeIn animation. Because we reset className entirely
+     * before re-adding, the animation always fires fresh on every call.
+     */
+    .result-panel {
+      display: none;
+      margin-top: 18px;
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+
+    .result-panel.show {
+      display: block;
+      animation: fadeIn 0.22s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-inner {
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    /* Spam variant — ALL selectors anchored to .result-panel.is-spam */
+    .result-panel.is-spam { border: 1px solid rgba(255, 77, 109, 0.38); }
+    .result-panel.is-spam .result-inner { background: rgba(255, 77, 109, 0.04); }
+    .result-panel.is-spam .result-icon {
+      background: linear-gradient(135deg, rgba(255,77,109,0.18), rgba(204,31,62,0.08));
+      border: 1px solid rgba(255, 77, 109, 0.22);
+    }
+    .result-panel.is-spam .result-label { color: var(--danger); }
+    .result-panel.is-spam .result-tag {
+      background: rgba(255, 77, 109, 0.10);
+      color: var(--danger);
+      border: 1px solid rgba(255, 77, 109, 0.20);
+    }
+
+    /* Safe variant — ALL selectors anchored to .result-panel.is-safe */
+    .result-panel.is-safe { border: 1px solid rgba(0, 212, 170, 0.30); }
+    .result-panel.is-safe .result-inner { background: rgba(0, 212, 170, 0.03); }
+    .result-panel.is-safe .result-icon {
+      background: linear-gradient(135deg, rgba(0,212,170,0.15), rgba(0,153,120,0.07));
+      border: 1px solid rgba(0, 212, 170, 0.20);
+    }
+    .result-panel.is-safe .result-label { color: var(--safe); }
+    .result-panel.is-safe .result-tag {
+      background: rgba(0, 212, 170, 0.09);
+      color: var(--safe);
+      border: 1px solid rgba(0, 212, 170, 0.18);
+    }
+
+    /* Shared result elements */
+    .result-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .result-label {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+
+    .result-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    .result-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-top: 10px;
+      display: inline-block;
+    }
+
+    /* ── History ──────────────────────────────────────────────────── */
+    .section-head {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-head::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .history-wrap { width: 100%; max-width: 680px; }
+
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .empty-state {
+      font-size: 12px;
+      color: var(--border2);
+      text-align: center;
+      padding: 20px;
+      border: 1px dashed var(--border);
+      border-radius: var(--r);
+    }
+
+    .history-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .history-item:hover { background: var(--surface2); border-color: var(--border2); }
+
+    .h-verdict {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .h-verdict.spam { background: rgba(255,77,109,0.12); color: var(--danger); }
+    .h-verdict.safe { background: rgba(0,212,170,0.10);  color: var(--safe);   }
+
+    .h-text {
+      flex: 1;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .h-time { font-size: 11px; color: var(--border2); flex-shrink: 0; }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px clamp(1.5rem, 5vw, 4rem);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-text { font-size: 11px; color: var(--border2); }
+
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.12s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .stats-row { gap: 8px; }
+      .stat-card { padding: 14px 12px; }
+      .stat-num { font-size: 1.4rem; }
+      .stat-label { font-size: 10px; }
+      .toolbar { flex-direction: column-reverse; align-items: stretch; }
+      .btn-group { width: 100%; }
+      .btn-primary { flex: 1; justify-content: center; }
+      .config-input { min-width: unset; width: 100%; }
+      .config-bar { flex-direction: column; align-items: flex-start; }
+      footer { justify-content: center; }
+      .footer-links { display: none; }
+      .header-pill { display: none; }
+    }
+
+    @media (max-width: 380px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stat-card:last-child { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header>
+    <a class="logo" href="#">
+      <div class="logo-mark">⚡</div>
+      SpamSentinel
+    </a>
+    <span class="header-pill">ML-powered · v1.0</span>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- Hero -->
+    <div class="hero anim-1">
+      <div class="hero-eyebrow">Naive Bayes Classifier</div>
+      <h1>Detect spam<br /><span>in milliseconds</span></h1>
+      <p>Paste any email or message and let the model classify it as spam or legitimate in real time.</p>
+      <p>If deployed on free tier the API will take a minute or so to process the first request.</p>
+    </div>
+
+    <!-- API config -->
+    <div class="config-bar anim-2">
+      <span class="config-label">API endpoint</span>
+      <input
+        id="apiUrl"
+        class="config-input"
+        type="text"
+        placeholder="http://localhost:5000"
+        value="http://localhost:5000"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      <div class="status-badge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">not verified</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row anim-3">
+      <div class="stat-card">
+        <div class="stat-num" id="totalCount">0</div>
+        <div class="stat-label">Total scanned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="spamCount">0</div>
+        <div class="stat-label">Spam flagged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="safeCount">0</div>
+        <div class="stat-label">Legitimate</div>
+      </div>
+    </div>
+
+    <!--
+      The .anim-4 wrapper carries the entry animation.
+      The .card inside is a plain static element — it only ever gets
+      .scanning added/removed, which animates box-shadow only. There is
+      no opacity or transform on .card, so it can never go invisible.
+    -->
+    <div class="anim-4" style="width:100%;max-width:680px;">
+      <div class="card" id="mainCard">
+
+        <div class="card-header">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="card-title">compose — email_input.txt</span>
+        </div>
+
+        <div class="card-body">
+
+          <!-- Sample chips -->
+          <div class="samples">
+            <span class="sample-label">try sample:</span>
+            <button class="chip" data-sample="spam1">🚨 Lottery winner</button>
+            <button class="chip" data-sample="spam2">💊 Pharmacy deal</button>
+            <button class="chip" data-sample="safe1">📅 Meeting invite</button>
+            <button class="chip" data-sample="safe2">💃 Fan Discussions</button>
+          </div>
+
+          <!-- Editor -->
+          <div class="editor">
+            <div class="line-nums" id="lineNums"><span>1</span></div>
+            <textarea
+              id="emailInput"
+              placeholder="Paste your email content here…"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <span class="char-count" id="charCount">0 characters</span>
+            <div class="btn-group">
+              <button class="btn btn-ghost" id="clearBtn">✕ Clear</button>
+              <button class="btn btn-primary" id="analyzeBtn" disabled>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                Analyse
+              </button>
+            </div>
+          </div>
+
+          <!-- Loader -->
+          <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <span>Running inference…</span>
+          </div>
+
+          <!-- Error -->
+          <div class="error-bar" id="errorBar">
+            <span>⚠</span>
+            <span id="errorMsg">Could not reach the API.</span>
+          </div>
+
+          <!--
+            Result panel.
+            Base CSS: display:none — zero height, zero layout impact.
+            JS adds .show (display:block + fadeIn) and .is-spam or .is-safe.
+            JS resets by setting className = 'result-panel' (back to display:none).
+            This means the card body never collapses on hide/show cycles.
+          -->
+          <div class="result-panel" id="resultPanel">
+            <div class="result-inner">
+              <div class="result-icon"  id="resultIcon"></div>
+              <div>
+                <div class="result-label" id="resultLabel"></div>
+                <div class="result-desc"  id="resultDesc"></div>
+                <div class="result-tag"   id="resultTag"></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /card-body -->
+      </div><!-- /card -->
+    </div><!-- /anim-4 wrapper -->
+
+    <!-- History -->
+    <div class="history-wrap anim-5">
+      <div class="section-head">Scan history</div>
+      <div class="history-list" id="historyList">
+        <div class="empty-state" id="emptyState">No scans yet — analyse an email to see results here.</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────── -->
+  <footer>
+    <span class="footer-text">SpamSentinel · Flask + Naive Bayes · MIT License</span>
+    <div class="footer-links">
+      <a href="https://github.com/bhaumikmango/SpamEmailDetection#">GitHub</a>
+      <a href="https://bhaumik-yadav.vercel.app/">About the dev</a>
+    </div>
+  </footer>
+
+</div><!-- /page -->
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Samples ────────────────────────────────────────────────── */
+  var SAMPLES = {
+    spam1: 'CONGRATULATIONS! You have been selected as the GRAND PRIZE WINNER of our $1,000,000 international lottery! To claim your prize, reply with your full name, bank account number, and a processing fee of $200. This is a limited-time offer. Act NOW before your prize expires!',
+    spam2: 'BUY CHEAP V1AGRA ONLINE! No prescription needed!! 80% off all medications. Discreet shipping worldwide. CLICK HERE to order: bit.ly/ch3ap-meds. Limited stock! Our Canadian pharmacy ships 24/7. Best prices GUARANTEED!!!',
+    safe1: 'Hi Sarah, just a quick note to confirm our project sync tomorrow at 2 PM in the main conference room. The agenda will cover Q3 deliverables, the new onboarding flow, and pipeline updates. Please bring your sprint notes. Let me know if you need to reschedule. Thanks, James',
+    safe2: "Hey!\nI was doing a re-watch on Prime and reading the X-Ray trivia, and omg, I need to share some of these facts with you. I don't know how I missed this stuff!\nYou know Hughie, right? In the comics, he was literally drawn to look like Simon Pegg! But obviously, the show took too long to make, so Simon Pegg plays Hughie's dad instead. That’s why his dad is so wholesome compared to the chaotic show.\nSpeaking of comics, Stormfront was a man in the graphic novels! Aya Cash was a genius casting choice to gender-swap that for the show to totally mess with Homelander.\nThe Deep and 'Timothy' - okay, this makes me feel better. Chace Crawford didn't eat a real octopus. It was mochi balls and chocolate sauce! Honestly, knowing that makes it less 'OMG' and just... weird.\nBlack Noir's weakness... That nut allergy is real! It’s based on the actor Nathan Mitchell’s actual, severe nut allergy. Kripke thought it was hilarious to make a super-soldier allergic to Almond Joys.\nThe Blood! They used 3.5 times more fake blood in Season 2 than in Season 1. Apparently, Jack Quaid was covered in it for almost two weeks straight in S2, and it was so sticky that flies were attacking him. Poor Hughie!\nNo, not THAT scene... That absolutely massive... ahem... organ in the opening of S3? That was practical. 20 feet long. They built it. I can't believe they got Amazon to pay for that.\nWe seriously need to do a deep-dive re-watch soon."
+  };
+
+  /* ── State ──────────────────────────────────────────────────── */
+  var state = { total: 0, spam: 0, safe: 0, history: [] };
+
+  /* ── DOM refs ───────────────────────────────────────────────── */
+  var emailInput  = document.getElementById('emailInput');
+  var analyzeBtn  = document.getElementById('analyzeBtn');
+  var clearBtn    = document.getElementById('clearBtn');
+  var charCount   = document.getElementById('charCount');
+  var loader      = document.getElementById('loader');
+  var errorBar    = document.getElementById('errorBar');
+  var errorMsg    = document.getElementById('errorMsg');
+  var resultPanel = document.getElementById('resultPanel');
+  var resultIcon  = document.getElementById('resultIcon');
+  var resultLabel = document.getElementById('resultLabel');
+  var resultDesc  = document.getElementById('resultDesc');
+  var resultTag   = document.getElementById('resultTag');
+  var mainCard    = document.getElementById('mainCard');
+  var historyList = document.getElementById('historyList');
+  var emptyState  = document.getElementById('emptyState');
+  var lineNums    = document.getElementById('lineNums');
+  var apiUrlInput = document.getElementById('apiUrl');
+  var statusDot   = document.getElementById('statusDot');
+  var statusText  = document.getElementById('statusText');
+  var totalEl     = document.getElementById('totalCount');
+  var spamEl      = document.getElementById('spamCount');
+  var safeEl      = document.getElementById('safeCount');
+
+  /* ── Strip entry-animation classes once they complete ────────
+   *
+   * This prevents any future reflow (e.g. getBoundingClientRect
+   * inside triggerScanPulse) from ever restarting the slideUp
+   * animation. After the class is removed the element is a plain
+   * static div — stable forever.
+   */
+  var animClasses = ['anim-1','anim-2','anim-3','anim-4','anim-5'];
+  document.querySelectorAll(animClasses.map(function(c){ return '.'+c; }).join(','))
+    .forEach(function (el) {
+      el.addEventListener('animationend', function () {
+        animClasses.forEach(function (c) { el.classList.remove(c); });
+      }, { once: true });
+    });
+
+  /* ── Line numbers ───────────────────────────────────────────── */
+  function updateLineNums() {
+    var lines = emailInput.value.split('\n').length;
+    var html = '';
+    for (var i = 1; i <= Math.max(lines, 1); i++) {
+      html += '<span>' + i + '</span>';
+    }
+    lineNums.innerHTML = html;
+  }
+
+  /* ── Input handler ──────────────────────────────────────────── */
+  emailInput.addEventListener('input', function () {
+    var len = emailInput.value.length;
+    charCount.textContent = len.toLocaleString() + ' character' + (len !== 1 ? 's' : '');
+    charCount.classList.toggle('warn', len > 5000);
+    analyzeBtn.disabled = len === 0;
+    updateLineNums();
+  });
+
+  /* ── Sample chips ───────────────────────────────────────────── */
+  document.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      emailInput.value = SAMPLES[chip.dataset.sample] || '';
+      emailInput.dispatchEvent(new Event('input'));
+      emailInput.focus();
+    });
+  });
+
+  /* ── Clear ──────────────────────────────────────────────────── */
+  clearBtn.addEventListener('click', function () {
+    emailInput.value = '';
+    emailInput.dispatchEvent(new Event('input'));
+    hideResult();
+    hideError();
+  });
+
+  /* ── UI helpers ─────────────────────────────────────────────── */
+  function showLoader(on) {
+    loader.classList.toggle('on', on);
+  }
+
+  function hideResult() {
+    /*
+     * Reset to bare class string — this sets display:none via CSS,
+     * taking the panel completely out of the document flow.
+     * No opacity tricks, no transitions fighting each other.
+     */
+    resultPanel.className = 'result-panel';
+  }
+
+  function hideError() {
+    errorBar.classList.remove('on');
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorBar.classList.add('on');
+  }
+
+  /* ── Animated counter ───────────────────────────────────────── */
+  function animCount(el, target) {
+    var start = parseInt(el.textContent, 10) || 0;
+    if (start === target) return;
+    var frames = 20, f = 0;
+    function tick() {
+      f++;
+      el.textContent = Math.round(start + (target - start) * (f / frames));
+      if (f < frames) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function updateStats() {
+    animCount(totalEl, state.total);
+    animCount(spamEl,  state.spam);
+    animCount(safeEl,  state.safe);
+  }
+
+  /* ── Show result ────────────────────────────────────────────── */
+  function showResult(isSpam) {
+    /* Step 1: hard-reset to display:none base state */
+    resultPanel.className = 'result-panel';
+
+    /* Step 2: populate content while invisible */
+    if (isSpam) {
+      resultIcon.textContent  = '🚫';
+      resultLabel.textContent = 'Spam Detected';
+      resultDesc.textContent  = 'This message exhibits strong spam characteristics and has been flagged as potentially harmful or unsolicited content.';
+      resultTag.textContent   = 'classification: spam';
+    } else {
+      resultIcon.textContent  = '✅';
+      resultLabel.textContent = 'Legitimate Email';
+      resultDesc.textContent  = 'No spam patterns detected. This message appears to be genuine, legitimate communication.';
+      resultTag.textContent   = 'classification: ham';
+    }
+
+    /*
+     * Step 3: in the next frame, add .show (display:block) and the
+     * theme class. Because className was reset in step 1, the browser
+     * sees this as a brand-new element going from display:none to
+     * display:block, so the fadeIn @keyframes always fires fresh.
+     */
+    requestAnimationFrame(function () {
+      resultPanel.className = 'result-panel show ' + (isSpam ? 'is-spam' : 'is-safe');
+    });
+  }
+
+  /* ── Scan pulse ─────────────────────────────────────────────── */
+  function triggerScanPulse() {
+    /*
+     * Only .card gets touched here. .card has NO opacity/transform
+     * animation — only pulse-ring (box-shadow). So even if the reflow
+     * triggers a style recalculation, the card can never go transparent.
+     */
+    mainCard.classList.remove('scanning');
+    void mainCard.getBoundingClientRect(); /* reflow scoped to card */
+    mainCard.classList.add('scanning');
+    mainCard.addEventListener('animationend', function () {
+      mainCard.classList.remove('scanning');
+    }, { once: true });
+  }
+
+  /* ── History ────────────────────────────────────────────────── */
+  function ts() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function addHistory(text, isSpam) {
+    state.history.unshift({ text: text, isSpam: isSpam, time: ts() });
+    if (state.history.length > 8) state.history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyList.querySelectorAll('.history-item').forEach(function (el) { el.remove(); });
+
+    if (state.history.length === 0) {
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    state.history.forEach(function (entry) {
+      var div = document.createElement('div');
+      div.className = 'history-item';
+      div.innerHTML =
+        '<span class="h-verdict ' + (entry.isSpam ? 'spam' : 'safe') + '">' + (entry.isSpam ? 'spam' : 'safe') + '</span>' +
+        '<span class="h-text">' + escHtml(entry.text.slice(0, 90)) + (entry.text.length > 90 ? '…' : '') + '</span>' +
+        '<span class="h-time">' + entry.time + '</span>';
+      div.addEventListener('click', function () {
+        emailInput.value = entry.text;
+        emailInput.dispatchEvent(new Event('input'));
+        emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      historyList.appendChild(div);
+    });
+  }
+
+  /* ── Analyse ────────────────────────────────────────────────── */
+  analyzeBtn.addEventListener('click', analyse);
+  emailInput.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyse();
+  });
+
+  function analyse() {
+    var text = emailInput.value.trim();
+    if (!text) return;
+
+    var url = (apiUrlInput.value.trim() || 'http://localhost:5000').replace(/\/$/, '');
+
+    hideError();
+    hideResult();
+    showLoader(true);
+    analyzeBtn.disabled = true;
+    triggerScanPulse();
+
+    fetch(url + '/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: text })
+    })
+    .then(function (res) {
+      if (!res.ok) throw new Error('Server responded with status ' + res.status);
+      return res.json();
+    })
+    .then(function (json) {
+      if (json.isSpam === undefined || json.isSpam === null) {
+        throw new Error('Unexpected response format from API.');
+      }
+
+      var isSpam = String(json.isSpam).toLowerCase() === 'true';
+
+      state.total++;
+      if (isSpam) state.spam++; else state.safe++;
+      updateStats();
+
+      statusDot.classList.remove('err');
+      statusDot.classList.add('ok');
+      statusText.textContent = 'connected';
+
+      showResult(isSpam);
+      addHistory(text, isSpam);
+    })
+    .catch(function (err) {
+      var msg = (err.message && err.message !== 'Failed to fetch')
+        ? err.message
+        : 'Could not reach the API. Check the endpoint URL and ensure the server is running.';
+      showError(msg);
+      statusDot.classList.remove('ok');
+      statusDot.classList.add('err');
+      statusText.textContent = 'unreachable';
+    })
+    .finally(function () {
+      showLoader(false);
+      analyzeBtn.disabled = emailInput.value.trim().length === 0;
+    });
+  }
+
+  /* ── Init ───────────────────────────────────────────────────── */
+  updateLineNums();
+  renderHistory();
+
+}());
+</script>
+
+</body>
+</html>
