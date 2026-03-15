@@ -1,36 +1,104 @@
-# ⚡ SpamSentinel
+# ⚡ SpamSentinel (Spam Email Classifier)
 
-A lightweight, real-time email spam classifier powered by a Naive Bayes ML model served via Flask, with a zero-latency dark-theme frontend.
+**Real-time email spam detection powered by Naive Bayes + Flask**
 
-![SpamSentinel Preview](https://img.shields.io/badge/ML-Naive%20Bayes-c8f045?style=flat-square&labelColor=0a0a0b)
-![Flask](https://img.shields.io/badge/Backend-Flask-c8f045?style=flat-square&labelColor=0a0a0b)
-![Vercel](https://img.shields.io/badge/Frontend-Vercel%20Ready-c8f045?style=flat-square&labelColor=0a0a0b)
+[![Live Demo](https://img.shields.io/badge/demo-live-c8f045?style=flat-square&labelColor=0a0a0b&logo=vercel)](https://spam-email-detection-lyart.vercel.app)
+[![Backend](https://img.shields.io/badge/api-render-c8f045?style=flat-square&labelColor=0a0a0b&logo=render)](https://spamemaildetectionandsentimentclassifier.onrender.com)
+[![Python](https://img.shields.io/badge/python-3.10-c8f045?style=flat-square&labelColor=0a0a0b&logo=python)](https://python.org)
+[![Flask](https://img.shields.io/badge/flask-2.x-c8f045?style=flat-square&labelColor=0a0a0b&logo=flask)](https://flask.palletsprojects.com)
+[![License](https://img.shields.io/badge/license-MIT-c8f045?style=flat-square&labelColor=0a0a0b)](LICENSE)
+
+Paste any email. Get a verdict in milliseconds.
+
+[**→ Try the live demo**](https://spam-email-detection-lyart.vercel.app)
+
+</div>
 
 ---
 
-## 📁 Project Structure
+## What it does
+
+SpamSentinel classifies email content as **spam** or **legitimate (ham)** using a Naive Bayes machine learning pipeline trained on the classic SMS/Email Spam Collection dataset. The model is serialised and served through a minimal Flask REST API, consumed by a zero-dependency single-file frontend deployed on Vercel.
+
+No frameworks. No build step. No nonsense.
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| ML model | Scikit-learn · Multinomial Naive Bayes |
+| Feature extraction | TF-IDF vectoriser (inside sklearn `Pipeline`) |
+| Backend | Python · Flask · Gunicorn |
+| Frontend | Vanilla HTML / CSS / JavaScript (single file) |
+| Backend hosting | Render (free tier) |
+| Frontend hosting | Vercel (free tier) |
+| Training data | `spam.csv` — UCI SMS Spam Collection |
+
+---
+
+## Project structure
 
 ```
-spamsentinel/
-├── app.py          # Flask backend — loads model & serves /POST endpoint
-├── file.pkl        # Serialised Naive Bayes pipeline (sklearn)
-├── ml13b.ipynb     # Training notebook
-├── index.html      # Frontend (single-file, Vercel-deployable)
+SpamEmailDetection/
+├── app.py              # Flask API — loads model, serves POST /
+├── file.pkl            # Serialised sklearn Pipeline (TF-IDF + Naive Bayes)
+├── ml13b.ipynb         # Training notebook — EDA, model training, export
+├── spam.csv            # Raw dataset (5,572 labelled messages)
+├── index.html          # Complete frontend — no build step required
+├── requirements.txt    # Python dependencies
+├── render.yaml         # Render deployment config
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## API reference
 
-### 1. Clone the repository
+### `POST /`
 
-```bash
-git clone https://github.com/<your-username>/spamsentinel.git
-cd spamsentinel
+Classifies a single email body.
+
+**Request**
+```json
+{
+  "email": "Congratulations! You have won $1,000,000. Reply now to claim."
+}
 ```
 
-### 2. Set up a Python virtual environment
+**Response**
+```json
+{
+  "isSpam": "true"
+}
+```
+
+| `isSpam` | Meaning |
+|---|---|
+| `"true"` | Spam detected |
+| `"false"` | Legitimate email (ham) |
+
+**Live endpoint**
+```
+POST https://spamemaildetectionandsentimentclassifier.onrender.com/
+```
+
+> The Render free tier spins down after 15 min of inactivity. The first request after a cold start may take 30–50 seconds. Subsequent requests are instant.
+
+---
+
+## Run locally
+
+### 1. Clone
+
+```bash
+git clone https://github.com/bhaumikmango/SpamEmailDetection.git
+cd SpamEmailDetection
+```
+
+### 2. Create a virtual environment
 
 ```bash
 python -m venv venv
@@ -45,54 +113,17 @@ venv\Scripts\activate
 ### 3. Install dependencies
 
 ```bash
-pip install flask flask-cors scikit-learn
+pip install -r requirements.txt
 ```
 
-> **Note:** `numpy` and `scipy` are pulled in automatically as scikit-learn dependencies.
-
-### 4. Run the Flask server
+### 4. Start the backend
 
 ```bash
 python app.py
+# → Running on http://localhost:5000
 ```
 
-The API will be available at `http://localhost:5000`.
-
----
-
-## 🌐 API Reference
-
-### `POST /`
-
-Classifies a single email as spam or ham.
-
-**Request body (JSON):**
-
-```json
-{
-  "email": "Congratulations! You have won $1,000,000..."
-}
-```
-
-**Response (JSON):**
-
-```json
-{
-  "isSpam": "true"
-}
-```
-
-| `isSpam` value | Meaning             |
-|----------------|---------------------|
-| `"true"`       | Email is spam       |
-| `"false"`      | Email is legitimate |
-| `"null"`       | Prediction error    |
-
----
-
-## 🖥️ Frontend
-
-Open `index.html` directly in your browser — no build step required.
+### 5. Open the frontend
 
 ```bash
 # macOS
@@ -105,94 +136,67 @@ xdg-open index.html
 start index.html
 ```
 
-Set the **API endpoint** field in the UI to point to your running Flask server (default: `http://localhost:5000`).
+Set the **API endpoint** field in the UI to `http://localhost:5000` and start classifying.
 
-### Keyboard shortcut
-
-Press **Ctrl + Enter** (or **⌘ + Enter** on Mac) inside the text area to trigger analysis instantly.
+**Keyboard shortcut:** `Ctrl + Enter` (or `⌘ + Enter` on Mac) triggers analysis from inside the text area.
 
 ---
 
-## ☁️ Deploying the Frontend to Vercel
+## Retrain the model
 
-The frontend is a single static HTML file — no framework, no build step.
-
-### Option A — Vercel CLI
+The full training pipeline lives in `ml13b.ipynb`.
 
 ```bash
-npm i -g vercel
-vercel
-```
-
-Follow the prompts. Vercel will detect a static site automatically.
-
-### Option B — Vercel Dashboard (drag & drop)
-
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Drag the folder (containing `index.html`) into the import area
-3. Click **Deploy**
-
-> ⚠️ **CORS note:** When the frontend is hosted on Vercel (HTTPS), the Flask backend must be publicly accessible too (not `localhost`). Either deploy the Flask app to a server/cloud service, or use a tunnel like [ngrok](https://ngrok.com) during development.
-
----
-
-## 🔧 Deploying the Flask Backend
-
-### Option A — Render (free tier)
-
-1. Push the repo to GitHub.
-2. Go to [render.com](https://render.com) → New → Web Service.
-3. Set **Build command:** `pip install flask flask-cors scikit-learn`
-4. Set **Start command:** `python app.py`
-
-### Option B — Railway
-
-```bash
-railway init
-railway up
-```
-
-### Option C — ngrok (local tunnel for testing)
-
-```bash
-pip install pyngrok
-ngrok http 5000
-```
-
-Copy the generated HTTPS URL and paste it into the frontend's **API endpoint** field.
-
----
-
-## 🛠️ Retraining the Model
-
-Open `ml13b.ipynb` in Jupyter and run all cells. The notebook saves the trained pipeline to `file.pkl`.
-
-```bash
-pip install jupyter scikit-learn pandas
+pip install jupyter
 jupyter notebook ml13b.ipynb
 ```
 
----
-
-## 📦 Dependencies
-
-| Package       | Purpose                        |
-|---------------|--------------------------------|
-| `flask`       | HTTP server & routing          |
-| `flask-cors`  | Cross-origin request handling  |
-| `scikit-learn`| ML pipeline + Naive Bayes      |
-| `pickle`      | Model serialisation (stdlib)   |
+Run all cells top to bottom. The final cell exports the fitted pipeline to `file.pkl`, which the Flask app loads at startup.
 
 ---
 
-## 🔒 Security Notes
+## Deployment
 
-- `file.pkl` is loaded on every request — consider caching it as a module-level global for production.
-- Do not expose your Flask server directly to the internet without a reverse proxy (nginx / caddy) in production.
-- Add rate limiting (e.g. `flask-limiter`) before public deployment.
+### Backend — Render
+
+Configured via `render.yaml`. Any push to `main` triggers an automatic redeploy.
+
+```yaml
+services:
+  - type: web
+    name: spamsentinel-api
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --workers 2 --bind 0.0.0.0:$PORT"
+```
+
+Manual setup: Render Dashboard → New Web Service → Connect GitHub repo → Instance Type: Free → Deploy.
+
+### Frontend — Vercel
+
+Single static file, zero config required.
+
+```bash
+npm i -g vercel
+vercel --prod
+```
+
+Or drag-and-drop the repo folder at [vercel.com/new](https://vercel.com/new).
 
 ---
 
-## 📄 License
+## Dependencies
 
-MIT © 2024 — feel free to use, modify, and distribute.
+```
+flask
+flask-cors
+scikit-learn
+numpy
+gunicorn
+```
+
+---
+
+## License
+
+MIT © [bhaumikmango](https://github.com/bhaumikmango)
