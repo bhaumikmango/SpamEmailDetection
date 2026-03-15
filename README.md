@@ -2,7 +2,7 @@
 
 **Real-time email spam detection powered by Naive Bayes + Flask**
 
-[![Live Demo](https://img.shields.io/badge/demo-live-c8f045?style=flat-square&labelColor=0a0a0b&logo=vercel)](https://spam-email-detection-lyart.vercel.app)
+[![Live Demo](https://img.shields.io/badge/demo-live-c8f045?style=flat-square&labelColor=0a0a0b&logo=vercel)](https://spam-sentinel-rho.vercel.app/)
 [![Backend](https://img.shields.io/badge/api-render-c8f045?style=flat-square&labelColor=0a0a0b&logo=render)](https://spamemaildetectionandsentimentclassifier.onrender.com)
 [![Python](https://img.shields.io/badge/python-3.10-c8f045?style=flat-square&labelColor=0a0a0b&logo=python)](https://python.org)
 [![Flask](https://img.shields.io/badge/flask-2.x-c8f045?style=flat-square&labelColor=0a0a0b&logo=flask)](https://flask.palletsprojects.com)
@@ -10,7 +10,7 @@
 
 Paste any email. Get a verdict in milliseconds.
 
-[**→ Try the live demo**](https://spam-email-detection-lyart.vercel.app)
+[**→ Try the live demo**](https://spam-sentinel-rho.vercel.app/)
 
 </div>
 
